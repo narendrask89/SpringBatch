@@ -1,6 +1,8 @@
 package com.spring.batch.config;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.sql.DataSource;
@@ -11,8 +13,9 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
+import org.springframework.batch.item.support.CompositeItemWriter;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -56,13 +59,30 @@ public class BatchConfiguration {
 		return new PersonItemProcessor();
 	}
 	@Bean
-	public JdbcBatchItemWriter<Person> writer() {
-		JdbcBatchItemWriter<Person> batchItemWriter = new JdbcBatchItemWriter<>();
-		batchItemWriter.setSql("INSERT INTO person(person_id,first_name,last_name,email,age) VALUES(?,?,?,?,?)");
-		batchItemWriter.setItemPreparedStatementSetter(new PersonItemPreparedStatementSetter());
-		batchItemWriter.setDataSource(dataSource);
-		batchItemWriter.afterPropertiesSet();
-		return batchItemWriter;
+	public CompositeItemWriter<Person> writer() {
+		
+		CompositeItemWriter<Person> compositeItemWriter = new CompositeItemWriter<>();
+		
+		JdbcBatchItemWriter<Person> personWriter = new JdbcBatchItemWriter<>();
+		personWriter.setSql("INSERT INTO person(person_id,first_name,last_name) VALUES(?,?,?)");
+		personWriter.setItemPreparedStatementSetter(new PersonItemPreparedStatementSetter());
+		personWriter.setDataSource(dataSource);
+		personWriter.afterPropertiesSet();
+		
+		JdbcBatchItemWriter<Person> personDetailWriter = new JdbcBatchItemWriter<>();
+		personDetailWriter.setSql("INSERT INTO person_details(email,age) VALUES(?,?)");
+		personDetailWriter.setItemPreparedStatementSetter(new PersonDetailItemPreparedStatementSetter());
+		personDetailWriter.setDataSource(dataSource);
+		personDetailWriter.afterPropertiesSet();
+		
+		List<ItemWriter<? super Person>> list = new ArrayList<>();
+		list.add(personWriter);
+		list.add(personDetailWriter);
+		
+		compositeItemWriter.setDelegates(list);
+		
+		
+		return compositeItemWriter;
 	}
 	
 	@Bean
