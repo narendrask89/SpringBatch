@@ -17,6 +17,7 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
 import com.nandulabs.batch.listener.JobListener;
@@ -92,7 +93,7 @@ public class BatchConfig {
 				.writer(writer())
 				.faultTolerant()
 				.skipPolicy(new CustomSkipPolicy())
-				.retry(DeadlockLoserDataAccessException.class)
+				.retry(TransientDataAccessException.class)
 				.retryLimit(3)
 				.taskExecutor(taskExecutor())
 				.listener(stepListener())
